@@ -61,3 +61,24 @@ export const LockIcon = (p) => (
     <path d="M8 11V8a4 4 0 0 1 8 0v3" />
   </svg>
 );
+
+export const CheckCircleIcon = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8 12.5 2.8 2.8L16 9.5" />
+  </svg>
+);
+
+export const ClockIcon = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+
+export const XCircleIcon = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m9 9 6 6M15 9l-6 6" />
+  </svg>
+);

@@ -14,6 +14,9 @@
   --color-line: oklch(0.92 0.004 50);
   --color-canvas: oklch(0.985 0.003 50);
   --color-danger: oklch(0.52 0.19 27);
+  --color-danger-soft: oklch(0.97 0.02 27);
+  --color-success: oklch(0.47 0.12 155);
+  --color-success-soft: oklch(0.96 0.04 155);
 }
 
 body {
