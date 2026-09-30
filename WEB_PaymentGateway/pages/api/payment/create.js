@@ -3,8 +3,11 @@ import dbConnect from "@/lib/mongodb";
 import Checkout from "@/models/Checkout";
 import Payment from "@/models/Payment";
 import {
+  CUSTOM_METHODS,
   PAYMENT_TYPES,
-  QRIS_VALID_MINUTES,
+  VALID_MINUTES,
+  createBcaVaCharge,
+  createIndomaretCharge,
   createQrisCharge,
   createSnapTransaction,
   parseMidtransTime,
@@ -35,11 +38,14 @@ export default async function handler(req, res) {
     if (!checkout) return res.status(404).json({ error: "Checkout not found" });
     if (checkout.status === "paid") return res.status(409).json({ error: "Order is already paid" });
 
-    const isQris = checkout.paymentMethod === "qris";
+    const method = CUSTOM_METHODS.includes(checkout.paymentMethod) ? checkout.paymentMethod : "card";
+    const isCustom = method !== "card";
 
     // Double-click / retry safety: reuse the payment that is already waiting for this checkout
     const existing = await Payment.findOne({ checkoutId: checkout._id, status: "PENDING" });
-    const reusable = existing && (isQris ? existing.qrString && existing.expiresAt > new Date() : existing.redirectUrl);
+    const hasDetails = (p) =>
+      method === "qris" ? !!p.qrString : method === "bca_va" ? !!p.vaNumber : method === "indomaret" ? !!p.paymentCode : !!p.redirectUrl;
+    const reusable = existing && hasDetails(existing) && (!isCustom || existing.expiresAt > new Date());
     if (reusable) {
       return res.status(200).json({
         paymentId: existing._id,
@@ -72,23 +78,28 @@ export default async function handler(req, res) {
     const customerDetails = checkout.customer?.email ? { email: checkout.customer.email } : null;
 
     try {
-      if (isQris) {
-        // QRIS: charge through the Core API so we can show our own QR page
-        const charge = await createQrisCharge({
-          orderId,
-          grossAmount: checkout.total,
-          itemDetails,
-          customerDetails,
-        });
-        payment.qrString = charge.qr_string;
-        payment.qrImageUrl = charge.actions?.find((a) => a.name === "generate-qr-code")?.url || "";
+      if (isCustom) {
+        // QRIS, BCA VA and Indomaret: charge through the Core API and show our own page
+        const order = { orderId, grossAmount: checkout.total, itemDetails, customerDetails };
+        let result;
+        if (method === "qris") {
+          result = await createQrisCharge(order);
+          payment.qrString = result.qr_string;
+          payment.qrImageUrl = result.actions?.find((a) => a.name === "generate-qr-code")?.url || "";
+        } else if (method === "bca_va") {
+          result = await createBcaVaCharge(order);
+          payment.vaNumber = result.va_numbers[0].va_number;
+        } else {
+          result = await createIndomaretCharge(order);
+          payment.paymentCode = result.payment_code;
+        }
         payment.expiresAt =
-          parseMidtransTime(charge.expiry_time) || new Date(Date.now() + QRIS_VALID_MINUTES * 60 * 1000);
+          parseMidtransTime(result.expiry_time) || new Date(Date.now() + VALID_MINUTES[method] * 60 * 1000);
       } else {
         const payload = {
           transaction_details: { order_id: orderId, gross_amount: checkout.total },
           item_details: itemDetails,
-          enabled_payments: PAYMENT_TYPES[checkout.paymentMethod] || PAYMENT_TYPES.card,
+          enabled_payments: PAYMENT_TYPES.card,
           expiry: { unit: "minutes", duration: 60 },
           callbacks: { finish: `${baseUrl(req)}/payment/${payment._id}` },
         };

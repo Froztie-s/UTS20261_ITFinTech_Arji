@@ -1,6 +1,6 @@
 # WEB_PaymentGateway
 
-Ordering and payment app for a small food and drink shop. Customers pick items by category, review them at checkout, and pay with a card, QRIS, an e-wallet or bank transfer through the **Midtrans** payment gateway. When the payment succeeds, Midtrans calls a webhook and the order is marked **LUNAS** automatically.
+Ordering and payment app for a small food and drink shop. Customers pick items by category, review them at checkout, and pay with a card, QRIS, a BCA virtual account or Indomaret through the **Midtrans** payment gateway. When the payment succeeds, Midtrans calls a webhook and the order is marked **LUNAS** automatically.
 
 Built for UTS IT Financial Services (Semester Ganjil 2026-1).
 
@@ -9,7 +9,7 @@ Built for UTS IT Financial Services (Semester Ganjil 2026-1).
 - Next.js (Pages Router) and React
 - Tailwind CSS
 - MongoDB Atlas with Mongoose
-- Midtrans sandbox: Snap (card, e-wallet, bank transfer) and Core API (QRIS)
+- Midtrans sandbox: Snap (cards) and Core API (QRIS, BCA virtual account, Indomaret)
 
 ## Pages
 
@@ -17,15 +17,15 @@ Built for UTS IT Financial Services (Semester Ganjil 2026-1).
 | --- | --- |
 | `/` | Select items: category tabs, search, add to cart |
 | `/checkout` | Review items, change quantities, subtotal, tax and total |
-| `/payment` | Choose a payment method (Card, QRIS, Other) and confirm |
-| `/payment/[id]` | Order status. Shows the QR code for QRIS, "Pay now" for other methods, and flips to **LUNAS** by itself |
+| `/payment` | Choose a payment method (Card, QRIS, BCA Virtual Account, Indomaret) and confirm |
+| `/payment/[id]` | Order status. Shows the QR code (QRIS), the virtual account number (BCA) or the payment code (Indomaret) with a countdown, "Pay now" for cards, and flips to **LUNAS** by itself |
 
 ## Payment flow
 
 1. The customer confirms on `/payment`. `POST /api/checkout` saves the order. Prices and tax are recalculated on the server from the database, never taken from the browser.
 2. `POST /api/payment/create` creates the payment at Midtrans.
-   - QRIS: a Core API charge. The QR code is shown on our own page and stays valid for 15 minutes.
-   - Card and Other: a Snap transaction, and the customer is redirected to the Midtrans payment page.
+   - QRIS, BCA virtual account and Indomaret: a Core API charge. Each has its own payment screen. The QR code is valid for 15 minutes, the BCA virtual account for 60 minutes and the Indomaret code for 2 hours.
+   - Card: a Snap transaction, and the customer is redirected to the Midtrans payment page.
 3. The customer pays. Midtrans sends a notification to `POST /api/webhook/midtrans`.
 4. The webhook checks the SHA512 signature and the amount, then sets the payment to LUNAS, EXPIRED or FAILED. Repeated notifications change nothing, and a paid order never goes backwards.
 5. `/payment/[id]` polls `GET /api/payment/[id]` every 4 seconds and updates without a refresh.
@@ -36,13 +36,13 @@ Built for UTS IT Financial Services (Semester Ganjil 2026-1).
 | --- | --- |
 | `products` | name, price, category, image, description, stock |
 | `checkouts` | items (product, name, price, qty), subtotal, tax, total, customer email, paymentMethod, status (`pending` or `paid`) |
-| `payments` | checkoutId, orderId (unique), amount, snapToken, redirectUrl, qrString, expiresAt, status (`PENDING`, `LUNAS`, `EXPIRED`, `FAILED`), paidAt, rawNotification |
+| `payments` | checkoutId, orderId (unique), amount, snapToken, redirectUrl, qrString, vaNumber, paymentCode, expiresAt, status (`PENDING`, `LUNAS`, `EXPIRED`, `FAILED`), paidAt, rawNotification |
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in the values
+# create a file named .env.local with the variables listed below
 npm run seed                 # loads the 12 sample products
 npm run dev                  # http://localhost:3000
 ```
@@ -74,8 +74,12 @@ The endpoint answers `403` for a wrong signature, `400` for an amount mismatch, 
 
 ## Testing a payment
 
-- **QRIS:** choose QRIS and confirm. In sandbox the QR page shows a **QR image URL**. Copy it into the [Midtrans QRIS simulator](https://simulator.sandbox.midtrans.com/v2/qris/index) and press Simulate. The page switches to LUNAS.
-- **Card, e-wallet, bank transfer:** use the test credentials and simulators listed in the Midtrans sandbox documentation.
+- **QRIS:** choose QRIS and confirm. In sandbox the QR page shows a **QR image URL**. Copy it into the [Midtrans QRIS simulator](https://simulator.sandbox.midtrans.com/v2/qris/index) and press Simulate.
+- **BCA Virtual Account:** copy the virtual account number into the [BCA VA simulator](https://simulator.sandbox.midtrans.com/bca/va/index), then inquire and pay.
+- **Indomaret:** copy the payment code into the [Indomaret simulator](https://simulator.sandbox.midtrans.com/indomaret/phoenix/index), then inquire and pay.
+- **Card:** on the Midtrans page use test card `4811 1111 1111 1114`, any future expiry, CVV `123`, OTP `112233`.
+
+In every case the order page switches to LUNAS by itself once the webhook arrives.
 
 ## Project structure
 

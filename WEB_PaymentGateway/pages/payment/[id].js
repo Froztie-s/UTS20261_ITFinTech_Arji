@@ -6,6 +6,8 @@ import { useCart } from "@/context/CartContext";
 import { formatRupiah } from "@/lib/format";
 import BackHeader from "@/components/BackHeader";
 import QrisPayment from "@/components/QrisPayment";
+import BcaVaPayment from "@/components/BcaVaPayment";
+import IndomaretPayment from "@/components/IndomaretPayment";
 import { CheckCircleIcon, ClockIcon, XCircleIcon } from "@/components/icons";
 
 const POLL_MS = 4000;
@@ -41,7 +43,15 @@ const STATUS = {
   },
 };
 
-const METHOD_LABEL = { card: "Credit / Debit Card", qris: "QRIS", other: "E-wallet / Bank transfer" };
+const METHOD_LABEL = {
+  card: "Credit / Debit Card",
+  qris: "QRIS",
+  bca_va: "BCA Virtual Account",
+  indomaret: "Indomaret",
+  other: "E-wallet / Bank transfer", // orders made before "Other" was removed
+};
+
+const CUSTOM_TITLES = { qris: "Pay with QRIS", bca_va: "Pay with BCA VA", indomaret: "Pay at Indomaret" };
 
 const dateFmt = new Intl.DateTimeFormat("id-ID", {
   dateStyle: "medium",
@@ -97,9 +107,20 @@ export default function PaymentStatus() {
   }, [status, clearCart]);
 
   const s = status ? STATUS[status] : null;
-  // While a QRIS payment is open the whole page is the QR screen
-  const showQris = status === "PENDING" && !!payment?.qrString;
-  const pageTitle = showQris ? "Pay with QRIS" : "Order status";
+  // While a QRIS, BCA VA or Indomaret payment is open, the whole page is its own payment screen
+  const method = payment?.paymentMethod;
+  const CustomScreen =
+    status !== "PENDING"
+      ? null
+      : method === "qris" && payment.qrString
+        ? QrisPayment
+        : method === "bca_va" && payment.vaNumber
+          ? BcaVaPayment
+          : method === "indomaret" && payment.paymentCode
+            ? IndomaretPayment
+            : null;
+  const showCustom = !!CustomScreen;
+  const pageTitle = showCustom ? CUSTOM_TITLES[method] : "Order status";
 
   return (
     <>
@@ -129,18 +150,18 @@ export default function PaymentStatus() {
           </div>
         )}
 
-        {showQris && (
+        {showCustom && (
           <>
             {loadError && (
               <p role="alert" className="mt-3 text-center text-sm font-medium text-danger">
                 Having trouble refreshing. Retrying...
               </p>
             )}
-            <QrisPayment payment={payment} />
+            <CustomScreen payment={payment} />
           </>
         )}
 
-        {payment && s && !showQris && (
+        {payment && s && !showCustom && (
           <>
             <section
               role="status"

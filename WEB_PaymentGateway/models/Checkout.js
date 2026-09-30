@@ -20,10 +20,14 @@ const CheckoutSchema = new mongoose.Schema(
     customer: {
       email: { type: String, default: "" },
     },
-    paymentMethod: { type: String, enum: ["card", "qris", "other"], default: "card" },
+    // "other" is kept only so orders created before it was removed still load
+    paymentMethod: { type: String, enum: ["card", "qris", "bca_va", "indomaret", "other"], default: "card" },
     status: { type: String, enum: ["pending", "paid"], default: "pending" },
   },
   { timestamps: true }
 );
+
+// In dev, hot reload keeps the old compiled model alive; drop it so schema edits apply
+if (process.env.NODE_ENV !== "production") delete mongoose.models.Checkout;
 
 export default mongoose.models.Checkout || mongoose.model("Checkout", CheckoutSchema);

@@ -3,12 +3,14 @@ const SNAP_URL =
     ? "https://app.midtrans.com/snap/v1/transactions"
     : "https://app.sandbox.midtrans.com/snap/v1/transactions";
 
-// Payment method chosen on the payment page -> Snap payment types to offer
+// Payment method chosen on the payment page -> Snap payment types to offer.
+// Only cards use the Midtrans page (Snap); QRIS, BCA VA and Indomaret have our own pages.
 export const PAYMENT_TYPES = {
   card: ["credit_card"],
-  qris: ["other_qris"],
-  other: ["gopay", "shopeepay", "ovo", "dana", "bank_transfer"],
 };
+
+// Methods that are charged through the Core API and shown on our own page
+export const CUSTOM_METHODS = ["qris", "bca_va", "indomaret"];
 
 const CHARGE_URL =
   process.env.MIDTRANS_IS_PRODUCTION === "true"
@@ -42,23 +44,49 @@ export function createSnapTransaction(payload) {
   return midtransPost(SNAP_URL, payload);
 }
 
-export const QRIS_VALID_MINUTES = 15;
+// How long each method stays payable (minutes)
+export const VALID_MINUTES = { qris: 15, bca_va: 60, indomaret: 120 };
+export const QRIS_VALID_MINUTES = VALID_MINUTES.qris;
 
-// Creates a QRIS charge (Core API) and returns { qr_string, expiry_time, ... }
-export async function createQrisCharge({ orderId, grossAmount, itemDetails, customerDetails }) {
+// Core API charge. It answers HTTP 200 even when the charge is rejected,
+// so the status code inside the body is checked too.
+async function charge(method, { orderId, grossAmount, itemDetails, customerDetails }, methodFields, hasResult) {
   const data = await midtransPost(CHARGE_URL, {
-    payment_type: "qris",
+    ...methodFields,
     transaction_details: { order_id: orderId, gross_amount: grossAmount },
     item_details: itemDetails,
     ...(customerDetails ? { customer_details: customerDetails } : {}),
-    qris: { acquirer: "gopay" },
-    custom_expiry: { expiry_duration: QRIS_VALID_MINUTES, unit: "minute" },
+    custom_expiry: { expiry_duration: VALID_MINUTES[method], unit: "minute" },
   });
-  // Core API answers 200 even when the charge is rejected; check the status code inside
-  if (!["200", "201"].includes(String(data.status_code)) || !data.qr_string) {
-    throw new Error(`Midtrans error: ${data.status_message || "no QR code returned"}`);
+  if (!["200", "201"].includes(String(data.status_code)) || !hasResult(data)) {
+    throw new Error(`Midtrans error: ${data.status_message || "no payment details returned"}`);
   }
   return data;
+}
+
+// QRIS: returns { qr_string, actions, expiry_time, ... }
+export function createQrisCharge(order) {
+  return charge("qris", order, { payment_type: "qris", qris: { acquirer: "gopay" } }, (d) => !!d.qr_string);
+}
+
+// BCA virtual account: returns { va_numbers: [{ bank, va_number }], expiry_time, ... }
+export function createBcaVaCharge(order) {
+  return charge(
+    "bca_va",
+    order,
+    { payment_type: "bank_transfer", bank_transfer: { bank: "bca" } },
+    (d) => !!d.va_numbers?.[0]?.va_number
+  );
+}
+
+// Indomaret: returns { payment_code, store, expiry_time, ... }
+export function createIndomaretCharge(order) {
+  return charge(
+    "indomaret",
+    order,
+    { payment_type: "cstore", cstore: { store: "indomaret" } },
+    (d) => !!d.payment_code
+  );
 }
 
 // Midtrans times are "YYYY-MM-DD HH:mm:ss" in WIB (UTC+7)

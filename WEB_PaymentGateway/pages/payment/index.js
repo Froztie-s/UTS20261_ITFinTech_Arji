@@ -12,7 +12,8 @@ import { LockIcon } from "@/components/icons";
 const METHODS = [
   { id: "card", label: "Credit / Debit Card", hint: "Visa, Mastercard, JCB" },
   { id: "qris", label: "QRIS", hint: "Scan with any banking or e-wallet app" },
-  { id: "other", label: "Other", hint: "E-wallet (GoPay, ShopeePay) or bank transfer" },
+  { id: "bca_va", label: "BCA Virtual Account", hint: "Transfer from m-BCA, KlikBCA or a BCA ATM" },
+  { id: "indomaret", label: "Indomaret", hint: "Pay with a code at any Indomaret store" },
 ];
 
 // Email is optional (receipt only); when filled it must look valid.
@@ -31,6 +32,8 @@ export default function Payment() {
   const subtotal = totalPrice;
   const tax = calcTax(subtotal);
   const total = subtotal + tax;
+  // A method saved earlier that no longer exists (for example "other") falls back to card
+  const method = METHODS.some((m) => m.id === details.method) ? details.method : "card";
 
   const onEmailChange = (e) => {
     updateDetails({ email: e.target.value });
@@ -53,10 +56,10 @@ export default function Payment() {
       const checkout = await postJSON("/api/checkout", {
         items: list.map((i) => ({ productId: i.productId, qty: i.qty })),
         email: details.email.trim(),
-        method: details.method,
+        method,
       });
       const payment = await postJSON("/api/payment/create", { checkoutId: checkout.checkoutId });
-      // QRIS is shown on our own page; other methods go to the Midtrans page,
+      // QRIS, BCA VA and Indomaret have their own page (no redirect URL); cards go to the Midtrans page,
       // which returns to /payment/[id] when done.
       window.location.href = payment.redirectUrl || `/payment/${payment.paymentId}`;
     } catch (err) {
@@ -104,7 +107,7 @@ export default function Payment() {
                       type="radio"
                       name="method"
                       value={m.id}
-                      checked={details.method === m.id}
+                      checked={method === m.id}
                       onChange={() => updateDetails({ method: m.id })}
                       className="h-4 w-4 accent-brand-strong outline-none"
                     />

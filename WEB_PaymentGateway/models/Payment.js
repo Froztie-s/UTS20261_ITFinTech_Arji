@@ -10,6 +10,9 @@ const PaymentSchema = new mongoose.Schema(
     // QRIS (Core API): raw QR data to render, and when it stops being valid
     qrString: { type: String, default: "" },
     qrImageUrl: { type: String, default: "" }, // Midtrans-hosted QR image (used by the sandbox simulator)
+    // BCA virtual account and Indomaret (Core API)
+    vaNumber: { type: String, default: "" },
+    paymentCode: { type: String, default: "" },
     expiresAt: { type: Date },
     status: {
       type: String,

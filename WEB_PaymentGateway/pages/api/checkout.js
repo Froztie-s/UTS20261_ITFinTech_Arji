@@ -4,7 +4,7 @@ import Product from "@/models/Product";
 import Checkout from "@/models/Checkout";
 import { calcTax } from "@/lib/pricing";
 
-const METHODS = ["card", "qris", "other"];
+const METHODS = ["card", "qris", "bca_va", "indomaret"];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default async function handler(req, res) {

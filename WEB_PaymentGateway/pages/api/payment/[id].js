@@ -33,6 +33,10 @@ export default async function handler(req, res) {
       redirectUrl: payment.status === "PENDING" ? payment.redirectUrl || null : null,
       // QRIS only: what the QR page needs while the payment is still open
       qrString: payment.status === "PENDING" ? payment.qrString || null : null,
+      // BCA virtual account and Indomaret: what the customer needs to pay
+      vaNumber: payment.status === "PENDING" ? payment.vaNumber || null : null,
+      paymentCode: payment.status === "PENDING" ? payment.paymentCode || null : null,
+      sandbox: process.env.MIDTRANS_IS_PRODUCTION !== "true",
       expiresAt: payment.expiresAt || null,
       // Sandbox only: the QR image URL the Midtrans simulator asks for
       qrImageUrl:
