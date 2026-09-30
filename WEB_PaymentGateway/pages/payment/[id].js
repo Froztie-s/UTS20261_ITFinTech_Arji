@@ -127,9 +127,12 @@ export default function PaymentStatus() {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      <BackHeader href="/" title={pageTitle} />
+      <BackHeader href="/" title={pageTitle} width={showCustom ? "compact" : "narrow"} />
 
-      <main className="mx-auto max-w-xl px-4 pb-10">
+      {/* One-column payment screens stay compact; the paid/expired status page uses two columns */}
+      <main
+        className={`mx-auto max-w-xl px-4 pb-10 lg:px-8 lg:pb-16 ${showCustom ? "lg:max-w-xl" : "lg:max-w-4xl"}`}
+      >
         {notFound && (
           <div className="py-16 text-center">
             <p className="text-base font-semibold">We could not find this order</p>
@@ -184,86 +187,80 @@ export default function PaymentStatus() {
               </p>
             )}
 
-            <section className="mt-6" aria-labelledby="bill-heading">
-              <h2 id="bill-heading" className="mb-3 text-sm font-bold">
-                Bill
-              </h2>
-              <div className="rounded-2xl border border-line bg-white px-4 py-4">
-                <p className="text-sm text-muted">{status === "LUNAS" ? "Total paid" : "Amount due"}</p>
-                <p className="text-3xl font-extrabold tabular-nums">{formatRupiah(payment.total)}</p>
-
-                <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
-                  <div>
-                    <dt className="text-muted">Order ID</dt>
-                    <dd className="break-all font-mono text-xs leading-5">{payment.orderId}</dd>
-                  </div>
-                  {payment.paymentMethod && (
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-muted">Method</dt>
-                      <dd className="font-medium">{METHOD_LABEL[payment.paymentMethod]}</dd>
-                    </div>
-                  )}
-                  {payment.paidAt && (
-                    <div className="flex justify-between gap-4">
-                      <dt className="whitespace-nowrap text-muted">Paid on</dt>
-                      <dd className="font-medium">{dateFmt.format(new Date(payment.paidAt))}</dd>
-                    </div>
-                  )}
-                </dl>
-              </div>
-            </section>
-
-            {payment.items.length > 0 && (
-              <section className="mt-6" aria-labelledby="items-heading">
-                <h2 id="items-heading" className="mb-3 text-sm font-bold">
-                  Order summary
+            <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-14">
+              <section className="mt-6 lg:col-start-1 lg:row-start-1" aria-labelledby="bill-heading">
+                <h2 id="bill-heading" className="mb-3 text-sm font-bold">
+                  Bill
                 </h2>
-                <ul className="divide-y divide-line text-sm">
-                  {payment.items.map((i) => (
-                    <li key={i.name} className="flex justify-between gap-4 py-2">
-                      <span>
-                        {i.name} <span className="text-muted">x{i.qty}</span>
-                      </span>
-                      <span className="font-medium tabular-nums">{formatRupiah(i.price * i.qty)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <dl className="mt-1 space-y-2 border-t border-line pt-3 text-sm">
-                  <div className="flex justify-between">
-                    <dt className="text-muted">Subtotal</dt>
-                    <dd className="font-medium tabular-nums">{formatRupiah(payment.subtotal)}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-muted">Tax</dt>
-                    <dd className="font-medium tabular-nums">{formatRupiah(payment.tax)}</dd>
-                  </div>
-                  <div className="flex justify-between border-t border-line pt-3 text-base">
-                    <dt className="font-bold">Total</dt>
-                    <dd className="font-extrabold tabular-nums">{formatRupiah(payment.total)}</dd>
-                  </div>
-                </dl>
-              </section>
-            )}
+                <div className="rounded-2xl border border-line bg-white px-4 py-4">
+                  <p className="text-sm text-muted">{status === "LUNAS" ? "Total paid" : "Amount due"}</p>
+                  <p className="text-3xl font-extrabold tabular-nums">{formatRupiah(payment.total)}</p>
 
-            <div className="mt-6 space-y-2">
-              {status === "PENDING" && payment.redirectUrl && (
-                <a
-                  href={payment.redirectUrl}
-                  className="flex h-12 w-full items-center justify-center rounded-xl bg-brand text-base font-bold text-white transition-colors hover:bg-brand-strong"
-                >
-                  Pay now
-                </a>
+                  <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
+                    <div>
+                      <dt className="text-muted">Order ID</dt>
+                      <dd className="break-all font-mono text-xs leading-5">{payment.orderId}</dd>
+                    </div>
+                    {payment.paymentMethod && (
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-muted">Method</dt>
+                        <dd className="font-medium">{METHOD_LABEL[payment.paymentMethod]}</dd>
+                      </div>
+                    )}
+                    {payment.paidAt && (
+                      <div className="flex justify-between gap-4">
+                        <dt className="whitespace-nowrap text-muted">Paid on</dt>
+                        <dd className="font-medium">{dateFmt.format(new Date(payment.paidAt))}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              </section>
+
+              {payment.items.length > 0 && (
+                <section className="mt-6 lg:col-start-2 lg:row-span-2 lg:row-start-1" aria-labelledby="items-heading">
+                  <h2 id="items-heading" className="mb-3 text-sm font-bold">
+                    Order summary
+                  </h2>
+                  <ul className="divide-y divide-line text-sm">
+                    {payment.items.map((i) => (
+                      <li key={i.name} className="flex justify-between gap-4 py-2">
+                        <span>
+                          {i.name} <span className="text-muted">x{i.qty}</span>
+                        </span>
+                        <span className="font-medium tabular-nums">{formatRupiah(i.price * i.qty)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <dl className="mt-1 space-y-2 border-t border-line pt-3 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-muted">Subtotal</dt>
+                      <dd className="font-medium tabular-nums">{formatRupiah(payment.subtotal)}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-muted">Tax</dt>
+                      <dd className="font-medium tabular-nums">{formatRupiah(payment.tax)}</dd>
+                    </div>
+                    <div className="flex justify-between border-t border-line pt-3 text-base">
+                      <dt className="font-bold">Total</dt>
+                      <dd className="font-extrabold tabular-nums">{formatRupiah(payment.total)}</dd>
+                    </div>
+                  </dl>
+                </section>
               )}
-              <Link
-                href="/"
-                className={
-                  status === "PENDING"
-                    ? "flex h-11 w-full items-center justify-center rounded-xl border border-line bg-white text-sm font-semibold hover:bg-brand-soft"
-                    : "flex h-12 w-full items-center justify-center rounded-xl bg-brand text-base font-bold text-white transition-colors hover:bg-brand-strong"
-                }
-              >
-                {status === "LUNAS" ? "Order more" : status === "PENDING" ? "Back to menu" : "Order again"}
-              </Link>
+
+              <div className="mt-6 space-y-2 lg:col-start-1 lg:row-start-2">
+                <Link
+                  href="/"
+                  className={
+                    status === "PENDING"
+                      ? "flex h-11 w-full items-center justify-center rounded-xl border border-line bg-white text-sm font-semibold hover:bg-brand-soft"
+                      : "flex h-12 w-full items-center justify-center rounded-xl bg-brand text-base font-bold text-white transition-colors hover:bg-brand-strong"
+                  }
+                >
+                  {status === "LUNAS" ? "Order more" : status === "PENDING" ? "Back to menu" : "Order again"}
+                </Link>
+              </div>
             </div>
           </>
         )}

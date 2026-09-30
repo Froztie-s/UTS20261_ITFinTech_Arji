@@ -30,7 +30,10 @@ export default function IndomaretPayment({ payment }) {
       <AmountHeader total={payment.total} countdown={countdown} />
 
       {!expired && (
-        <section className="mt-5 rounded-3xl border border-line bg-white p-4 shadow-sm" aria-label="Indomaret payment code">
+        <section
+          className="mt-5 rounded-3xl border border-line bg-white p-4 shadow-sm"
+          aria-label="Indomaret payment code"
+        >
           <p className="mb-4 text-sm font-extrabold tracking-wide">Indomaret</p>
           <CopyRow label="Payment code" value={payment.paymentCode} big />
           <div className="my-4 border-t border-line" />
@@ -40,7 +43,6 @@ export default function IndomaretPayment({ payment }) {
 
       <StatusLine expired={expired} expiredText="This payment code has expired. Place the order again." />
       {expired && <ExpiredActions />}
-
       {!expired && (
         <>
           <HowToPay steps={steps} />

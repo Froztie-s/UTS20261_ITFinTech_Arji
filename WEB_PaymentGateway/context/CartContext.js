@@ -4,7 +4,7 @@ const CartContext = createContext(null);
 const CART_KEY = "cart";
 const DETAILS_KEY = "checkout-details";
 
-const emptyDetails = { email: "", method: "card" };
+const emptyDetails = { email: "", method: "qris" };
 
 export function CartProvider({ children }) {
   // items: { [productId]: { productId, name, price, image, qty } }

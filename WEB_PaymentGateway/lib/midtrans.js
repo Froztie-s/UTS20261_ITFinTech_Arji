@@ -1,15 +1,5 @@
-const SNAP_URL =
-  process.env.MIDTRANS_IS_PRODUCTION === "true"
-    ? "https://app.midtrans.com/snap/v1/transactions"
-    : "https://app.sandbox.midtrans.com/snap/v1/transactions";
-
-// Payment method chosen on the payment page -> Snap payment types to offer.
-// Only cards use the Midtrans page (Snap); QRIS, BCA VA and Indomaret have our own pages.
-export const PAYMENT_TYPES = {
-  card: ["credit_card"],
-};
-
-// Methods that are charged through the Core API and shown on our own page
+// Payment methods offered on the payment page. Each is charged through the Core API
+// and shown on our own page.
 export const CUSTOM_METHODS = ["qris", "bca_va", "indomaret"];
 
 const CHARGE_URL =
@@ -37,11 +27,6 @@ async function midtransPost(url, payload) {
     throw new Error(`Midtrans error: ${detail}`);
   }
   return data;
-}
-
-// Creates a Snap transaction and returns { token, redirect_url }
-export function createSnapTransaction(payload) {
-  return midtransPost(SNAP_URL, payload);
 }
 
 // How long each method stays payable (minutes)

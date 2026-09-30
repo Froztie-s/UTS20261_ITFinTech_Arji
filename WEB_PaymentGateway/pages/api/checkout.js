@@ -4,7 +4,7 @@ import Product from "@/models/Product";
 import Checkout from "@/models/Checkout";
 import { calcTax } from "@/lib/pricing";
 
-const METHODS = ["card", "qris", "bca_va", "indomaret"];
+const METHODS = ["qris", "bca_va", "indomaret"];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default async function handler(req, res) {
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { items, email = "", method = "card" } = req.body || {};
+  const { items, email = "", method = "qris" } = req.body || {};
 
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "Cart is empty" });

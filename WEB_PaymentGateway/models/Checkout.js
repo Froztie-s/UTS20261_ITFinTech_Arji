@@ -20,8 +20,12 @@ const CheckoutSchema = new mongoose.Schema(
     customer: {
       email: { type: String, default: "" },
     },
-    // "other" is kept only so orders created before it was removed still load
-    paymentMethod: { type: String, enum: ["card", "qris", "bca_va", "indomaret", "other"], default: "card" },
+    // "card" and "other" are kept only so orders created before they were removed still load
+    paymentMethod: {
+      type: String,
+      enum: ["qris", "bca_va", "indomaret", "card", "other"],
+      default: "qris",
+    },
     status: { type: String, enum: ["pending", "paid"], default: "pending" },
   },
   { timestamps: true }

@@ -104,7 +104,7 @@ export default function QrisPayment({ payment }) {
       <AmountHeader total={payment.total} countdown={countdown} />
 
       <section
-        className="mx-auto mt-5 w-full max-w-72 rounded-3xl border border-line bg-white p-4 shadow-sm"
+        className="mx-auto mt-5 w-full max-w-72 lg:max-w-80 rounded-3xl border border-line bg-white p-4 shadow-sm"
         aria-label="QRIS code"
       >
         <p className="mb-3 text-center text-sm font-extrabold tracking-wide">QRIS</p>
@@ -147,7 +147,6 @@ export default function QrisPayment({ payment }) {
           )
         )}
       </div>
-
       {!expired && <HowToPay steps={steps} />}
       {payment.qrImageUrl && !expired && <SandboxHelper url={payment.qrImageUrl} />}
 

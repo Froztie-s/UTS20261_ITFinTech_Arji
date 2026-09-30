@@ -51,7 +51,6 @@ export default function BcaVaPayment({ payment }) {
 
       <StatusLine expired={expired} expiredText="This virtual account has expired. Place the order again." />
       {expired && <ExpiredActions />}
-
       {!expired && (
         <>
           <HowToPay steps={steps} />
