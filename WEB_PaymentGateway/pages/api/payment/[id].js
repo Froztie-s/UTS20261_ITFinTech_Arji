@@ -30,7 +30,13 @@ export default async function handler(req, res) {
       amount: payment.amount,
       paidAt: payment.paidAt || null,
       createdAt: payment.createdAt,
-      redirectUrl: payment.status === "PENDING" ? payment.redirectUrl : null,
+      redirectUrl: payment.status === "PENDING" ? payment.redirectUrl || null : null,
+      // QRIS only: what the QR page needs while the payment is still open
+      qrString: payment.status === "PENDING" ? payment.qrString || null : null,
+      expiresAt: payment.expiresAt || null,
+      // Sandbox only: the QR image URL the Midtrans simulator asks for
+      qrImageUrl:
+        payment.status === "PENDING" && process.env.MIDTRANS_IS_PRODUCTION !== "true" ? payment.qrImageUrl || null : null,
       paymentMethod: checkout?.paymentMethod || null,
       items: checkout?.items?.map((i) => ({ name: i.name, price: i.price, qty: i.qty })) || [],
       subtotal: checkout?.subtotal ?? null,

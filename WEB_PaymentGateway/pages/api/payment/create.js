@@ -2,7 +2,13 @@ import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import Checkout from "@/models/Checkout";
 import Payment from "@/models/Payment";
-import { PAYMENT_TYPES, createSnapTransaction } from "@/lib/midtrans";
+import {
+  PAYMENT_TYPES,
+  QRIS_VALID_MINUTES,
+  createQrisCharge,
+  createSnapTransaction,
+  parseMidtransTime,
+} from "@/lib/midtrans";
 import { TAX_RATE } from "@/lib/pricing";
 
 function baseUrl(req) {
@@ -29,14 +35,17 @@ export default async function handler(req, res) {
     if (!checkout) return res.status(404).json({ error: "Checkout not found" });
     if (checkout.status === "paid") return res.status(409).json({ error: "Order is already paid" });
 
+    const isQris = checkout.paymentMethod === "qris";
+
     // Double-click / retry safety: reuse the payment that is already waiting for this checkout
     const existing = await Payment.findOne({ checkoutId: checkout._id, status: "PENDING" });
-    if (existing && existing.redirectUrl) {
+    const reusable = existing && (isQris ? existing.qrString && existing.expiresAt > new Date() : existing.redirectUrl);
+    if (reusable) {
       return res.status(200).json({
         paymentId: existing._id,
         orderId: existing.orderId,
-        snapToken: existing.snapToken,
-        redirectUrl: existing.redirectUrl,
+        method: checkout.paymentMethod,
+        redirectUrl: existing.redirectUrl || null,
       });
     }
 
@@ -60,36 +69,48 @@ export default async function handler(req, res) {
       quantity: 1,
       name: `Tax (${Math.round(TAX_RATE * 100)}%)`,
     });
+    const customerDetails = checkout.customer?.email ? { email: checkout.customer.email } : null;
 
-    const payload = {
-      transaction_details: { order_id: orderId, gross_amount: checkout.total },
-      item_details: itemDetails,
-      enabled_payments: PAYMENT_TYPES[checkout.paymentMethod] || PAYMENT_TYPES.card,
-      expiry: { unit: "minutes", duration: 60 },
-      callbacks: { finish: `${baseUrl(req)}/payment/${payment._id}` },
-    };
-    if (checkout.customer?.email) {
-      payload.customer_details = { email: checkout.customer.email };
-    }
-
-    let snap;
     try {
-      snap = await createSnapTransaction(payload);
+      if (isQris) {
+        // QRIS: charge through the Core API so we can show our own QR page
+        const charge = await createQrisCharge({
+          orderId,
+          grossAmount: checkout.total,
+          itemDetails,
+          customerDetails,
+        });
+        payment.qrString = charge.qr_string;
+        payment.qrImageUrl = charge.actions?.find((a) => a.name === "generate-qr-code")?.url || "";
+        payment.expiresAt =
+          parseMidtransTime(charge.expiry_time) || new Date(Date.now() + QRIS_VALID_MINUTES * 60 * 1000);
+      } else {
+        const payload = {
+          transaction_details: { order_id: orderId, gross_amount: checkout.total },
+          item_details: itemDetails,
+          enabled_payments: PAYMENT_TYPES[checkout.paymentMethod] || PAYMENT_TYPES.card,
+          expiry: { unit: "minutes", duration: 60 },
+          callbacks: { finish: `${baseUrl(req)}/payment/${payment._id}` },
+        };
+        if (customerDetails) payload.customer_details = customerDetails;
+
+        const snap = await createSnapTransaction(payload);
+        payment.snapToken = snap.token;
+        payment.redirectUrl = snap.redirect_url;
+      }
     } catch (err) {
       await Payment.deleteOne({ _id: payment._id });
       console.error(err);
       return res.status(502).json({ error: "Could not start the payment. Please try again." });
     }
 
-    payment.snapToken = snap.token;
-    payment.redirectUrl = snap.redirect_url;
     await payment.save();
 
     return res.status(201).json({
       paymentId: payment._id,
       orderId,
-      snapToken: snap.token,
-      redirectUrl: snap.redirect_url,
+      method: checkout.paymentMethod,
+      redirectUrl: payment.redirectUrl || null,
     });
   } catch (err) {
     console.error(err);

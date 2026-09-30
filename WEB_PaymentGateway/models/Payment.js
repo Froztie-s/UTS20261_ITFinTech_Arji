@@ -7,6 +7,10 @@ const PaymentSchema = new mongoose.Schema(
     amount: { type: Number, required: true, min: 0 },
     snapToken: { type: String, default: "" },
     redirectUrl: { type: String, default: "" },
+    // QRIS (Core API): raw QR data to render, and when it stops being valid
+    qrString: { type: String, default: "" },
+    qrImageUrl: { type: String, default: "" }, // Midtrans-hosted QR image (used by the sandbox simulator)
+    expiresAt: { type: Date },
     status: {
       type: String,
       enum: ["PENDING", "LUNAS", "EXPIRED", "FAILED"],
@@ -17,5 +21,8 @@ const PaymentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// In dev, hot reload keeps the old compiled model (and its old fields) alive; drop it so schema edits apply
+if (process.env.NODE_ENV !== "production") delete mongoose.models.Payment;
 
 export default mongoose.models.Payment || mongoose.model("Payment", PaymentSchema);
