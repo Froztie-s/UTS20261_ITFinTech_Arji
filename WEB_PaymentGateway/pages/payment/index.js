@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { formatRupiah } from "@/lib/format";
 import { TAX_RATE, calcTax } from "@/lib/pricing";
+import { postJSON } from "@/lib/api";
 import BackHeader from "@/components/BackHeader";
 import Field from "@/components/Field";
 import { LockIcon } from "@/components/icons";
@@ -24,6 +25,8 @@ function validateEmail(email) {
 export default function Payment() {
   const { list, loaded, totalQty, totalPrice, details, updateDetails } = useCart();
   const [emailError, setEmailError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const subtotal = totalPrice;
   const tax = calcTax(subtotal);
@@ -34,15 +37,31 @@ export default function Payment() {
     if (emailError) setEmailError("");
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     const error = validateEmail(details.email);
     setEmailError(error);
     if (error) {
       document.getElementById("f-email")?.focus();
       return;
     }
-    // Next steps: POST /api/checkout, then /api/payment/create, then open the Midtrans payment.
+
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const checkout = await postJSON("/api/checkout", {
+        items: list.map((i) => ({ productId: i.productId, qty: i.qty })),
+        email: details.email.trim(),
+        method: details.method,
+      });
+      const payment = await postJSON("/api/payment/create", { checkoutId: checkout.checkoutId });
+      // Hand over to the Midtrans payment page; it returns to /payment/[id] when done.
+      window.location.href = payment.redirectUrl;
+    } catch (err) {
+      setSubmitError(err.message);
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -132,10 +151,16 @@ export default function Payment() {
 
             <button
               type="submit"
-              className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand text-base font-bold text-white transition-colors hover:bg-brand-strong active:bg-brand-strong"
+              disabled={submitting}
+              className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand text-base font-bold text-white transition-colors hover:bg-brand-strong active:bg-brand-strong disabled:cursor-wait disabled:opacity-70"
             >
-              Confirm &amp; Pay
+              {submitting ? "Processing..." : "Confirm & Pay"}
             </button>
+            {submitError && (
+              <p role="alert" className="mt-3 text-center text-sm font-medium text-danger">
+                {submitError}
+              </p>
+            )}
           </form>
         )}
       </main>
