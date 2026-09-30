@@ -82,3 +82,15 @@ export const XCircleIcon = (p) => (
     <path d="m9 9 6 6M15 9l-6 6" />
   </svg>
 );
+
+export const DownloadIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14" />
+  </svg>
+);
+
+export const ChevronDownIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);

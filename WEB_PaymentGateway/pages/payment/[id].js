@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { formatRupiah } from "@/lib/format";
 import BackHeader from "@/components/BackHeader";
+import QrisPayment from "@/components/QrisPayment";
 import { CheckCircleIcon, ClockIcon, XCircleIcon } from "@/components/icons";
 
 const POLL_MS = 4000;
@@ -96,13 +97,16 @@ export default function PaymentStatus() {
   }, [status, clearCart]);
 
   const s = status ? STATUS[status] : null;
+  // While a QRIS payment is open the whole page is the QR screen
+  const showQris = status === "PENDING" && !!payment?.qrString;
+  const pageTitle = showQris ? "Pay with QRIS" : "Order status";
 
   return (
     <>
       <Head>
-        <title>Order status</title>
+        <title>{pageTitle}</title>
       </Head>
-      <BackHeader href="/" title="Order status" />
+      <BackHeader href="/" title={pageTitle} />
 
       <main className="mx-auto max-w-xl px-4 pb-10">
         {notFound && (
@@ -125,7 +129,18 @@ export default function PaymentStatus() {
           </div>
         )}
 
-        {payment && s && (
+        {showQris && (
+          <>
+            {loadError && (
+              <p role="alert" className="mt-3 text-center text-sm font-medium text-danger">
+                Having trouble refreshing. Retrying...
+              </p>
+            )}
+            <QrisPayment payment={payment} />
+          </>
+        )}
+
+        {payment && s && !showQris && (
           <>
             <section
               role="status"

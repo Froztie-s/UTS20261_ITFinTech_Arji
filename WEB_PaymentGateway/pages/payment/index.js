@@ -56,8 +56,9 @@ export default function Payment() {
         method: details.method,
       });
       const payment = await postJSON("/api/payment/create", { checkoutId: checkout.checkoutId });
-      // Hand over to the Midtrans payment page; it returns to /payment/[id] when done.
-      window.location.href = payment.redirectUrl;
+      // QRIS is shown on our own page; other methods go to the Midtrans page,
+      // which returns to /payment/[id] when done.
+      window.location.href = payment.redirectUrl || `/payment/${payment.paymentId}`;
     } catch (err) {
       setSubmitError(err.message);
       setSubmitting(false);
