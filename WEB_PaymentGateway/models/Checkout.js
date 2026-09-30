@@ -13,12 +13,14 @@ const CheckoutItemSchema = new mongoose.Schema(
 const CheckoutSchema = new mongoose.Schema(
   {
     items: { type: [CheckoutItemSchema], required: true },
+    subtotal: { type: Number, required: true, min: 0 },
+    tax: { type: Number, required: true, min: 0 },
     total: { type: Number, required: true, min: 0 },
+    // Optional: only used for a receipt
     customer: {
-      name: { type: String, required: true },
-      email: { type: String, required: true },
-      phone: { type: String, default: "" },
+      email: { type: String, default: "" },
     },
+    paymentMethod: { type: String, enum: ["card", "qris", "other"], default: "card" },
     status: { type: String, enum: ["pending", "paid"], default: "pending" },
   },
   { timestamps: true }

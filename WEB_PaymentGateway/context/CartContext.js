@@ -4,12 +4,12 @@ const CartContext = createContext(null);
 const CART_KEY = "cart";
 const DETAILS_KEY = "checkout-details";
 
-const emptyDetails = { name: "", phone: "", email: "", address: "", method: "card" };
+const emptyDetails = { email: "", method: "card" };
 
 export function CartProvider({ children }) {
   // items: { [productId]: { productId, name, price, image, qty } }
   const [items, setItems] = useState({});
-  // shipping + payment choice, kept so going back from payment does not lose the form
+  // receipt email + payment method, kept so going back from payment does not lose them
   const [details, setDetails] = useState(emptyDetails);
   const [loaded, setLoaded] = useState(false);
 
